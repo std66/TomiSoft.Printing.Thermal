@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using TomiSoft.Printing.Thermal.EscPosFormatter;
+using TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter;
+using TomiSoft.Printing.Thermal.Abstractions.Imaging;
 using ZXing;
 using ZXing.Common;
 using ZXing.OneD;
 using ZXing.QrCode;
 
-namespace TomiSoft.Printing.Thermal {
-    public static class ZxingTools {
-        public static readonly byte GS = 0x1D;// Group separator
+namespace TomiSoft.Printing.Thermal.Imaging.ZXingBarcode {
+    public class ZXingBarcodeImageProvider : IBarcodeImageProvider {
+        public static readonly byte GS = 0x1D; // Group separator
 
-        public static byte[] GetQRCodeImage(string value, int size) {
+        public byte[] GetQrCodeImage(string textContent, int size) {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix byteMatrix = qrCodeWriter.encode(value, BarcodeFormat.QR_CODE, 100, 100);
+            BitMatrix byteMatrix = qrCodeWriter.encode(textContent, BarcodeFormat.QR_CODE, 100, 100);
 
             return BitMatrixToEscPos(byteMatrix, size);
         }
 
-        public static byte[] GetBarcodeImage(BarcodeKind kind, string value, int size) {
-            ZXing.BarcodeFormat format = kind switch {
+        public byte[] GetBarcodeImage(BarcodeKind kind, string content, int size) {
+            BarcodeFormat format = kind switch {
                 BarcodeKind.UPC_A => BarcodeFormat.UPC_A,
                 BarcodeKind.UPC_E => BarcodeFormat.UPC_E,
                 BarcodeKind.EAN13 => BarcodeFormat.EAN_13,
@@ -45,7 +46,7 @@ namespace TomiSoft.Printing.Thermal {
                 _ => throw new ArgumentException($"Parameter has invalid value: '{kind}'", nameof(kind))
             };
 
-            BitMatrix byteMatrix = writer.encode(value, format, 100, 100);
+            BitMatrix byteMatrix = writer.encode(content, format, 100, 100);
 
             return BitMatrixToEscPos(byteMatrix, size);
         }

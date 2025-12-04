@@ -1,14 +1,14 @@
 ﻿using System.Collections.Generic;
 
-namespace TomiSoft.Printing.Thermal.EscPosFormatter {
-    public interface IXmlVisitor {
+namespace TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter {
+    public interface IEscPosXmlVisitor {
         byte[] Result { get; }
 
         void VisitAlignmentBegin(Alignment align);
         void VisitAlignmentEnd();
         void VisitBarcode(BarcodeKind kind, bool asImage, string value);
-        void VisitDocumentBegin(int? paperWidthMM, int? lineWidthChars, int? lineFeedAtEnd);
-        void VisitDocumentEnd();
+        void VisitDocumentBegin(string codePage, string font);
+        void VisitDocumentEnd(int lineFeed);
         void VisitHeading(string text, int level);
         void VisitParagraphBegin();
         void VisitParagraphEnd();

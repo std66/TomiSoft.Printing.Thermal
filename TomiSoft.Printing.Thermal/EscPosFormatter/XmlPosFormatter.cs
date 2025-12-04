@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter;
 
 namespace TomiSoft.Printing.Thermal.EscPosFormatter {
     public class XmlPosFormatter {
         private readonly string[] terminalNodes = { "t", "heading", "qr", "table", "barcode" };
 
-        public void Format(Stream xmlStream, IXmlVisitor visitor) {
+        public void Format(Stream xmlStream, IEscPosXmlVisitor visitor, Action<FormatterOptions> options) {
             XmlDocument xmlDocument = new XmlDocument();
 
             try {
@@ -18,35 +19,38 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                 throw;
             }
 
-            Accept(xmlDocument.DocumentElement, visitor);
+            FormatterOptions formatterOptions = new FormatterOptions();
+            options(formatterOptions);
+
+            Accept(xmlDocument.DocumentElement, visitor, formatterOptions);
         }
 
-        private void Accept(XmlElement? documentElement, IXmlVisitor visitor) {
+        private void Accept(XmlElement? documentElement, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
             if (documentElement == null)
                 return;
 
-            AcceptComplexElement(documentElement, visitor);
+            AcceptComplexElement(documentElement, visitor, formatterOptions);
         }
 
-        private void AcceptComplexElement(XmlNode node, IXmlVisitor visitor) {
-            AcceptBeginComplexNode(node, visitor);
+        private void AcceptComplexElement(XmlNode node, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
+            AcceptBeginComplexNode(node, visitor, formatterOptions);
 
             foreach (XmlNode childNode in node.ChildNodes) {
                 if (terminalNodes.Contains(childNode.Name)) {
-                    AcceptTerminalNode(childNode, visitor);
+                    AcceptTerminalNode(childNode, visitor, formatterOptions);
                 }
                 else {
-                    AcceptComplexElement(childNode, visitor);
+                    AcceptComplexElement(childNode, visitor, formatterOptions);
                 }
             }
 
-            AcceptEndComplexNode(node, visitor);
+            AcceptEndComplexNode(node, visitor, formatterOptions);
         }
 
-        private static void AcceptEndComplexNode(XmlNode node, IXmlVisitor visitor) {
+        private static void AcceptEndComplexNode(XmlNode node, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
             switch (node.Name) {
                 case "escpos":
-                    visitor.VisitDocumentEnd();
+                    visitor.VisitDocumentEnd(formatterOptions.LineFeedAtEnd);
                     break;
 
                 case "para":
@@ -59,17 +63,12 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             }
         }
 
-        private static void AcceptBeginComplexNode(XmlNode node, IXmlVisitor visitor) {
+        private static void AcceptBeginComplexNode(XmlNode node, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
             switch (node.Name) {
                 case "escpos":
-                    XmlNode? paperWidthMM = node.Attributes?.GetNamedItem("paperWidthMM");
-                    XmlNode? lineWidthChars = node.Attributes?.GetNamedItem("lineWidthChars");
-                    XmlNode? lineFeedAtEnd = node.Attributes?.GetNamedItem("lineFeedAtEnd");
-
                     visitor.VisitDocumentBegin(
-                        paperWidthMM == null ? null : Convert.ToInt32(paperWidthMM.Value),
-                        lineWidthChars == null ? null : Convert.ToInt32(lineWidthChars.Value),
-                        lineFeedAtEnd == null ? null : Convert.ToInt32(lineFeedAtEnd.Value)
+                        formatterOptions.CodePage,
+                        formatterOptions.DefaultFont
                     );
                     break;
 
@@ -91,7 +90,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             }
         }
 
-        private void AcceptTerminalNode(XmlNode node, IXmlVisitor visitor) {
+        private void AcceptTerminalNode(XmlNode node, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
             switch (node.Name) {
                 case "t":
                     visitor.VisitText(node.InnerText);
@@ -120,7 +119,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             }
         }
 
-        private void AcceptBarcode(IXmlVisitor visitor, string encoding, bool barcodeAsImage, string value) {
+        private void AcceptBarcode(IEscPosXmlVisitor visitor, string encoding, bool barcodeAsImage, string value) {
             BarcodeKind kind = encoding switch {
                 "UPC-A" => BarcodeKind.UPC_A,
                 "UPC-E" => BarcodeKind.UPC_E,
@@ -137,7 +136,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             visitor.VisitBarcode(kind, barcodeAsImage, value);
         }
 
-        private void AcceptTable(XmlNode node, IXmlVisitor visitor) {
+        private void AcceptTable(XmlNode node, IEscPosXmlVisitor visitor) {
             List<string[]> lines = new List<string[]>();
 
             foreach (XmlNode row in node.SelectNodes("row")) {

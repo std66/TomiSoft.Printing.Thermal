@@ -1,4 +1,4 @@
-﻿namespace TomiSoft.Printing.Thermal.EscPosFormatter {
+﻿namespace TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter {
     public enum BarcodeKind {
         UPC_A,
         UPC_E,

@@ -1,9 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11222.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TomiSoft.Printing.Thermal", "TomiSoft.Printing.Thermal\TomiSoft.Printing.Thermal.csproj", "{ACBF02EA-D2E4-4D07-8DB7-B1D4C0F5036A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{F08E83DF-8D86-4DF6-872E-1A99B65E5F9B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomiSoft.Printing.Thermal.Printer.Netum", "TomiSoft.Printing.Thermal.Printer.Netum\TomiSoft.Printing.Thermal.Printer.Netum.csproj", "{AD7BB1D8-E1B6-4D4E-B1B2-3F865A8042E1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomiSoft.Printing.Thermal.Abstractions", "TomiSoft.Printing.Thermal.Abstractions\TomiSoft.Printing.Thermal.Abstractions.csproj", "{E7003B8A-1876-401F-A794-F276D655E75C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TomiSoft.Printing.Thermal.Imaging.ZXingBarcode", "TomiSoft.Printing.Thermal.Imaging.ZXingBarcode\TomiSoft.Printing.Thermal.Imaging.ZXingBarcode.csproj", "{8D8C2363-3F7C-4D17-B041-9C12C1B75B01}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +23,27 @@ Global
 		{ACBF02EA-D2E4-4D07-8DB7-B1D4C0F5036A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACBF02EA-D2E4-4D07-8DB7-B1D4C0F5036A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACBF02EA-D2E4-4D07-8DB7-B1D4C0F5036A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F08E83DF-8D86-4DF6-872E-1A99B65E5F9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F08E83DF-8D86-4DF6-872E-1A99B65E5F9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F08E83DF-8D86-4DF6-872E-1A99B65E5F9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F08E83DF-8D86-4DF6-872E-1A99B65E5F9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD7BB1D8-E1B6-4D4E-B1B2-3F865A8042E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD7BB1D8-E1B6-4D4E-B1B2-3F865A8042E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD7BB1D8-E1B6-4D4E-B1B2-3F865A8042E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD7BB1D8-E1B6-4D4E-B1B2-3F865A8042E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7003B8A-1876-401F-A794-F276D655E75C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7003B8A-1876-401F-A794-F276D655E75C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7003B8A-1876-401F-A794-F276D655E75C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7003B8A-1876-401F-A794-F276D655E75C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D8C2363-3F7C-4D17-B041-9C12C1B75B01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D8C2363-3F7C-4D17-B041-9C12C1B75B01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D8C2363-3F7C-4D17-B041-9C12C1B75B01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D8C2363-3F7C-4D17-B041-9C12C1B75B01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FAB95844-037B-4A8A-9DB9-2664FDEC8D12}
 	EndGlobalSection
 EndGlobal
