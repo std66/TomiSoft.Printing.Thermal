@@ -69,7 +69,7 @@ Define the document to print using XML:
 </escpos>
 ```
 
-Then create your ESC/POS byte array with the following code:
+Then create your ESC/POS byte array with the following code. See an example of the final print [here](https://github.com/std66/TomiSoft.Printing.Thermal/blob/main/readme_attachments/sample_print.jpg?raw=true).
 ```csharp
 string escPosXml = "...";
 
