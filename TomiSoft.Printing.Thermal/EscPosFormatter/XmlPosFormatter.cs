@@ -15,7 +15,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             try {
                 xmlDocument.Load(xmlStream);
             }
-            catch (XmlException ex) {
+            catch (XmlException) {
                 throw;
             }
 
@@ -25,7 +25,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             Accept(xmlDocument.DocumentElement, visitor, formatterOptions);
         }
 
-        private void Accept(XmlElement? documentElement, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
+        private void Accept(XmlElement documentElement, IEscPosXmlVisitor visitor, FormatterOptions formatterOptions) {
             if (documentElement == null)
                 return;
 

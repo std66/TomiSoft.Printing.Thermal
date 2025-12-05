@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>14.0</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.IO.Ports" Version="10.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\TomiSoft.Printing.Thermal.Imaging.ZXingBarcode\TomiSoft.Printing.Thermal.Imaging.ZXingBarcode.csproj" />
+		<ProjectReference Include="..\TomiSoft.Printing.Thermal.Printer.Netum\TomiSoft.Printing.Thermal.Printer.Netum.csproj" />
+		<ProjectReference Include="..\TomiSoft.Printing.Thermal\TomiSoft.Printing.Thermal.csproj" />
+	</ItemGroup>
+
+</Project>
