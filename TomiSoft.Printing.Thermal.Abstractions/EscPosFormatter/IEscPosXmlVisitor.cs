@@ -10,6 +10,7 @@ namespace TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter {
         void VisitDocumentBegin(string codePage, string font);
         void VisitDocumentEnd(int lineFeed);
         void VisitHeading(string text, int level);
+        void VisitImage(byte[] imageBytes, string mimeType, int width, int height, IReadOnlyDictionary<string, string> vendorAttributes);
         void VisitParagraphBegin();
         void VisitParagraphEnd();
         void VisitQr(string text, string size, bool asImage, IReadOnlyDictionary<string, string> vendorAttributes);

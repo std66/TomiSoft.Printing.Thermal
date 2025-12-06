@@ -252,5 +252,12 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                 yield return line.ToString();
         }
 
+        public void VisitImage(byte[] imageBytes, string mimeType, int width, int height, IReadOnlyDictionary<string, string> vendorAttributes) {
+            if (ImageProvider == null) {
+                throw new InvalidOperationException($"{nameof(ImageProvider)} is not set, cannot render image.");
+            }
+
+            result.AddRange(ImageProvider.GetImage(imageBytes, mimeType, width, height, vendorAttributes));
+        }
     }
 }

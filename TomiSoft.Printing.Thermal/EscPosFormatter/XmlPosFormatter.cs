@@ -7,7 +7,7 @@ using TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter;
 
 namespace TomiSoft.Printing.Thermal.EscPosFormatter {
     public class XmlPosFormatter {
-        private readonly string[] terminalNodes = { "t", "heading", "qr", "table", "barcode" };
+        private readonly string[] terminalNodes = { "t", "heading", "qr", "table", "barcode", "image" };
 
         public void Format(Stream xmlStream, IEscPosXmlVisitor visitor, Action<FormatterOptions> options) {
             XmlDocument xmlDocument = new XmlDocument();
@@ -118,6 +118,26 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                     bool barcodeAsImage = Convert.ToBoolean(node.Attributes?.GetNamedItem("asimage")?.InnerText);
                     AcceptBarcode(visitor, encodingAttr.InnerText, barcodeAsImage, node.InnerText, GetAttributesWithPrefix(node, "vnd-"));
                     break;
+
+                case "image":
+                    XmlNode mimeAttr = node.Attributes?.GetNamedItem("mimetype") ?? throw new Exception("Attribute 'mimetype' is required but not found");
+                    XmlNode widthAttr = node.Attributes?.GetNamedItem("width") ?? throw new Exception("Attribute 'width' is required but not found");
+                    XmlNode heightAttr = node.Attributes?.GetNamedItem("height") ?? throw new Exception("Attribute 'height' is required but not found");
+
+                    string base64 = (node.InnerText ?? string.Empty).Trim();
+                    byte[] imageBytes;
+                    try {
+                        imageBytes = Convert.FromBase64String(base64);
+                    }
+                    catch (FormatException ex) {
+                        throw new Exception("Image content is not valid base64.", ex);
+                    }
+
+                    int width = Convert.ToInt32(widthAttr.InnerText);
+                    int height = Convert.ToInt32(heightAttr.InnerText);
+
+                    AcceptImage(visitor, imageBytes, mimeAttr.InnerText, width, height, GetAttributesWithPrefix(node, "vnd-"));
+                    break;
             }
         }
 
@@ -130,6 +150,10 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             );
 
             return vendorAttributes;
+        }
+
+        private void AcceptImage(IEscPosXmlVisitor visitor, byte[] imageBytes, string mimeType, int width, int height, IReadOnlyDictionary<string, string> vendorAttributes) {
+            visitor.VisitImage(imageBytes, mimeType, width, height, vendorAttributes);
         }
 
         private void AcceptBarcode(IEscPosXmlVisitor visitor, string encoding, bool barcodeAsImage, string value, IReadOnlyDictionary<string, string> vendorAttributes) {
