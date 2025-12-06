@@ -102,13 +102,13 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             result.AddRange(ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Normal, ESCPOS.CharSizeHeight.Normal));
         }
 
-        public void VisitQr(string text, string size, bool asImage) {
+        public void VisitQr(string text, string size, bool asImage, IReadOnlyDictionary<string, string> vendorAttributes) {
             if (asImage) {
                 if (BarcodeImageProvider == null) {
                     throw new InvalidOperationException($"{nameof(BarcodeImageProvider)} is not set, cannot render QR code as image.");
                 }
 
-                result.AddRange(BarcodeImageProvider.GetQrCodeImage(text, Convert.ToInt32(size)));
+                result.AddRange(BarcodeImageProvider.GetQrCodeImage(text, Convert.ToInt32(size), vendorAttributes));
             }
             else {
                 QRCodeSize s = size switch {
@@ -153,13 +153,13 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             }
         }
 
-        public void VisitBarcode(BarcodeKind kind, bool asImage, string value) {
+        public void VisitBarcode(BarcodeKind kind, bool asImage, string value, IReadOnlyDictionary<string, string> vendorAttributes) {
             if (asImage) {
                 if (BarcodeImageProvider == null) {
                     throw new InvalidOperationException($"{nameof(BarcodeImageProvider)} is not set, cannot render QR code as image.");
                 }
 
-                result.AddRange(BarcodeImageProvider.GetBarcodeImage(kind, value, 300));
+                result.AddRange(BarcodeImageProvider.GetBarcodeImage(kind, value, 300, vendorAttributes));
             }
             else {
                 BarCodeType type = kind switch {

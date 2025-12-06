@@ -6,13 +6,13 @@ namespace TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter {
 
         void VisitAlignmentBegin(Alignment align);
         void VisitAlignmentEnd();
-        void VisitBarcode(BarcodeKind kind, bool asImage, string value);
+        void VisitBarcode(BarcodeKind kind, bool asImage, string value, IReadOnlyDictionary<string, string> vendorAttributes);
         void VisitDocumentBegin(string codePage, string font);
         void VisitDocumentEnd(int lineFeed);
         void VisitHeading(string text, int level);
         void VisitParagraphBegin();
         void VisitParagraphEnd();
-        void VisitQr(string text, string size, bool asImage);
+        void VisitQr(string text, string size, bool asImage, IReadOnlyDictionary<string, string> vendorAttributes);
         void VisitTable(IEnumerable<string[]> lines);
         void VisitText(string text);
     }

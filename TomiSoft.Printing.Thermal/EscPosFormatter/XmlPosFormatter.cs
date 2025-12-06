@@ -103,8 +103,9 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
 
                 case "qr":
                     XmlNode sizeAttr = node.Attributes?.GetNamedItem("size") ?? throw new Exception("Attribute 'size' is required but not found");
+
                     bool asImage = Convert.ToBoolean(node.Attributes?.GetNamedItem("asimage")?.InnerText);
-                    visitor.VisitQr(node.InnerText, sizeAttr.InnerText, asImage);
+                    visitor.VisitQr(node.InnerText, sizeAttr.InnerText, asImage, GetAttributesWithPrefix(node, "vnd-"));
                     break;
 
                 case "table":
@@ -113,13 +114,25 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
 
                 case "barcode":
                     XmlNode encodingAttr = node.Attributes?.GetNamedItem("encoding") ?? throw new Exception("Attribute 'encoding' is required but not found");
+
                     bool barcodeAsImage = Convert.ToBoolean(node.Attributes?.GetNamedItem("asimage")?.InnerText);
-                    AcceptBarcode(visitor, encodingAttr.InnerText, barcodeAsImage, node.InnerText);
+                    AcceptBarcode(visitor, encodingAttr.InnerText, barcodeAsImage, node.InnerText, GetAttributesWithPrefix(node, "vnd-"));
                     break;
             }
         }
 
-        private void AcceptBarcode(IEscPosXmlVisitor visitor, string encoding, bool barcodeAsImage, string value) {
+        private static IReadOnlyDictionary<string, string> GetAttributesWithPrefix(XmlNode node, string prefix, bool removePrefix = true) {
+            XmlNode[] vendorAttr = node.Attributes?.Cast<XmlNode>().Where(a => a.Name.StartsWith(prefix)).ToArray() ?? [];
+
+            IReadOnlyDictionary<string, string> vendorAttributes = vendorAttr.ToDictionary(
+                key => removePrefix ? key.Name.Substring(prefix.Length) : key.Name,
+                value => value.InnerText
+            );
+
+            return vendorAttributes;
+        }
+
+        private void AcceptBarcode(IEscPosXmlVisitor visitor, string encoding, bool barcodeAsImage, string value, IReadOnlyDictionary<string, string> vendorAttributes) {
             BarcodeKind kind = encoding switch {
                 "UPC-A" => BarcodeKind.UPC_A,
                 "UPC-E" => BarcodeKind.UPC_E,
@@ -133,7 +146,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                 _ => throw new Exception($"Attribute 'encoding' has invalid value '{encoding}'.")
             };
 
-            visitor.VisitBarcode(kind, barcodeAsImage, value);
+            visitor.VisitBarcode(kind, barcodeAsImage, value, vendorAttributes);
         }
 
         private void AcceptTable(XmlNode node, IEscPosXmlVisitor visitor) {

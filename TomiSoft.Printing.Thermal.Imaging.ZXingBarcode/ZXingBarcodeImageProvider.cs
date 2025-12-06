@@ -11,14 +11,14 @@ namespace TomiSoft.Printing.Thermal.Imaging.ZXingBarcode {
     public class ZXingBarcodeImageProvider : IBarcodeImageProvider {
         public static readonly byte GS = 0x1D; // Group separator
 
-        public byte[] GetQrCodeImage(string textContent, int size) {
+        public byte[] GetQrCodeImage(string textContent, int size, IReadOnlyDictionary<string, string> vendorAttributes) {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             BitMatrix byteMatrix = qrCodeWriter.encode(textContent, BarcodeFormat.QR_CODE, 100, 100);
 
             return BitMatrixToEscPos(byteMatrix, size);
         }
 
-        public byte[] GetBarcodeImage(BarcodeKind kind, string content, int size) {
+        public byte[] GetBarcodeImage(BarcodeKind kind, string content, int size, IReadOnlyDictionary<string, string> vendorAttributes) {
             BarcodeFormat format = kind switch {
                 BarcodeKind.UPC_A => BarcodeFormat.UPC_A,
                 BarcodeKind.UPC_E => BarcodeFormat.UPC_E,
