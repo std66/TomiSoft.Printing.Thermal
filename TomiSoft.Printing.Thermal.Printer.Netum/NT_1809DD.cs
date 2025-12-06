@@ -92,4 +92,6 @@ public class NT_1809DD : Abstractions.Printer.Printer {
         new PrinterFont("Font B", 1, new Dictionary<int, int>() { [1] = 42, [2] = 21, [3] = 14, [4] = 10, [5] = 42, [6] = 42, [7] = 42 }),
         new PrinterFont("Font C", 2, new Dictionary<int, int>() { [1] = 42, [2] = 21, [3] = 14, [4] = 10, [5] = 42, [6] = 42, [7] = 42 }),
     ];
+
+    public override int DotsPerLine => 384;
 }

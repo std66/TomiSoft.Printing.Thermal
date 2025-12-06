@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace TomiSoft.Printing.Thermal.Abstractions.Printer;
+﻿namespace TomiSoft.Printing.Thermal.Abstractions.Printer;
 
 public abstract class Printer : IPrinter {
     public abstract IReadOnlyList<CodePage> SupportedCodePages { get; }
@@ -10,6 +6,7 @@ public abstract class Printer : IPrinter {
     public abstract string Manufacturer { get; }
     public abstract string Model { get; }
     public abstract int PaperWidthMM { get; }
+    public abstract int DotsPerLine { get; }
 
     public virtual CodePage GetCodePage(string name) {
         return SupportedCodePages
