@@ -75,19 +75,33 @@ string escPosXml = "...";
 
 using Stream s = new MemoryStream(Encoding.UTF8.GetBytes(escPosXml));
 
+//Open a connection to the printer. In this example, a serial connection will be used.
+using var serialPort = new System.IO.Ports.SerialPort("COM8", 115200);
+serialPort.Open();
+
 //IPrinter provides parameters about a specific thermal printer,
 //eg. code page and font support, paper width, etc.
 //This is used for word wrapping, encoding text in printer-specific codepage, etc.
 //You may need to implement your own.
 IPrinter printerDriver = new NT_1809DD();
 
-var formatter = new XmlPosFormatter();
-var visitor = new EscPosXmlVisitor(printerDriver) {
+//Create a command queue that will manage sending commands to the printer.
+using PrinterCommandQueue commandQueue = new PrinterCommandQueue(serialPort.BaseStream);
+
+//Configure printer status listener (DLE EOT command response event handler)
+commandQueue.StatusReceived += (sender, status) => {
+    Console.WriteLine($"Printer status received: {status}");
+};
+
+//A visitor will convert the contents of the XML to actual ESC/POS commands
+//and enqueue them.
+var visitor = new EscPosXmlVisitor(printerDriver, commandQueue) {
     //imaging dependencies are isolated and alternative implementations
     //can be provided
     BarcodeImageProvider = new ZXingBarcodeImageProvider()
 };
 
+var formatter = new XmlPosFormatter();
 formatter.Format(s, visitor, options => {
     //provide default settings specific to the printer you use
     options.DefaultFont = "Font A";
@@ -95,14 +109,10 @@ formatter.Format(s, visitor, options => {
     options.LineFeedAtEnd = 3;
 });
 
-byte[] escPosData = visitor.Result;
+//Wait for printer queue to finish data transfer.
+//(This does not mean that the application waits for the actual print to complete.)
+await commandQueue.QueueCompletionAsync();
 
-//Print with your favourite library:
-await printer.Print(escPosData);
-
-//Or if your printer is on a serial port:
-using var serialPort = new System.IO.Ports.SerialPort("COM8", 11500);
-serialPort.Open();
-serialPort.Write(escPosData, 0, escPosData.Length);
+//Close connection
 serialPort.Close();
 ```

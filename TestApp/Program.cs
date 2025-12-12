@@ -1,10 +1,11 @@
 ﻿using System.Text;
+using TomiSoft.Printing.Thermal.CommandQueue;
 using TomiSoft.Printing.Thermal.EscPosFormatter;
 using TomiSoft.Printing.Thermal.Imaging.ZXingBarcode;
 using TomiSoft.Printing.Thermal.Printer.Netum;
 
 internal class Program {
-    private static void Main(string[] args) {
+    private static async Task Main(string[] args) {
         string escPosXml = """
             <?xml version="1.0" encoding="utf-8" ?>
             <escpos version="1.0.0">
@@ -71,23 +72,42 @@ internal class Program {
 
         using Stream s = new MemoryStream(Encoding.UTF8.GetBytes(escPosXml));
 
-        var formatter = new XmlPosFormatter();
-        var visitor = new EscPosXmlVisitor(new NT_1809DD()) {
+        //open serial port targeting "COM8" with baud 115200 to transfer escPosData
+        using var serialPort = new System.IO.Ports.SerialPort("COM8", 115200);
+        serialPort.Open();
+
+        using PrinterCommandQueue commandQueue = new PrinterCommandQueue(serialPort.BaseStream);
+
+        //configure printer status listener (DLE EOT command response event handler)
+        commandQueue.StatusReceived += (sender, status) => {
+            Console.WriteLine($"Printer status received: {status}");
+        };
+
+        //create ESC/POS XML visitor for NT-1809DD printer and a command queue
+        var visitor = new EscPosXmlVisitor(new NT_1809DD(), commandQueue) {
             BarcodeImageProvider = new ZXingBarcodeImageProvider()
         };
 
+        //Queue transferring can be cancelled by pressing Ctrl+C
+        Console.CancelKeyPress += (sender, e) => {
+            Console.WriteLine("Printing cancelled by user.");
+            e.Cancel = true;
+            commandQueue.CancelPrinting();
+        };
+
+        var formatter = new XmlPosFormatter();
+
+        //begin processing XML and queue ESC/POS commands
         formatter.Format(s, visitor, options => {
             options.DefaultFont = "Font A";
             options.CodePage = "OEM852";
             options.LineFeedAtEnd = 3;
         });
 
-        byte[] escPosData = visitor.Result;
+        //await completion of transferring queued commands
+        //(this does not wait for actual printing to complete)
+        await commandQueue.QueueCompletionAsync();
 
-        //open serial port targeting "COM8" with baud 11500 to transfer escPosData
-        using var serialPort = new System.IO.Ports.SerialPort("COM8", 11500);
-        serialPort.Open();
-        serialPort.Write(escPosData, 0, escPosData.Length);
         serialPort.Close();
     }
 }

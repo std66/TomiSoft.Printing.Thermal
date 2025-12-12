@@ -6,15 +6,15 @@ using System.Text;
 using TomiSoft.Printing.Thermal.Abstractions.EscPosFormatter;
 using TomiSoft.Printing.Thermal.Abstractions.Imaging;
 using TomiSoft.Printing.Thermal.Abstractions.Printer;
+using TomiSoft.Printing.Thermal.CommandQueue;
+using TomiSoft.Printing.Thermal.EscPos.Commands;
 using TomiSoft.Printing.Thermal.Printer;
 
 namespace TomiSoft.Printing.Thermal.EscPosFormatter {
     public class EscPosXmlVisitor : IEscPosXmlVisitor {
-        private readonly List<byte> result = new List<byte>();
-
         private readonly Stack<Justification> currentJustification = new Stack<Justification>();
         private readonly IPrinter printer;
-
+        private readonly IPrinterCommandQueue commandQueue;
         private IStringEncoder encoder;
         private PrinterFont font;
         private int currentFontSize = 1;
@@ -23,8 +23,9 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
         public IBarcodeImageProvider BarcodeImageProvider { get; set; }
         public IImageProvider ImageProvider { get; set; }
 
-        public EscPosXmlVisitor(IPrinter printer) {
+        public EscPosXmlVisitor(IPrinter printer, IPrinterCommandQueue commandQueue) {
             this.printer = printer;
+            this.commandQueue = commandQueue;
         }
 
         public void VisitDocumentBegin(string codePage, string font) {
@@ -33,20 +34,27 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
             this.font = font == null ? printer.SupportedFonts.First() : printer.GetFont(font);
             this.encoder = printerCodePage.Encoder;
 
-            result.AddRange(ESCPOS.Commands.InitializePrinter);
-            result.AddRange(ESCPOS.Commands.SelectCodeTable((CodeTable)printerCodePage.Code));
-            result.AddRange(ESCPOS.Commands.SelectCharacterFont((Font)this.font.Code));
+            commandQueue.Enqueue(
+                Command.InitializePrinter,
+                new DleEotStatusRequestCommand(2),
+                new EscPosCommand([0x1D, 0x61, 0xFF], "Enable automatic status back (ASB)"),
+                new EscPosCommand(ESCPOS.Commands.SelectCodeTable((CodeTable)printerCodePage.Code), $"Select code page: {printerCodePage.Name}"),
+                new EscPosCommand(ESCPOS.Commands.SelectCharacterFont((Font)this.font.Code), $"Select font: {this.font.Name}")
+            );
+
             currentJustification.Push(Justification.Left);
         }
 
         public void VisitDocumentEnd(int lineFeed) {
             for (int i = 0; i < (lineFeed); i++)
-                result.AddRange(ESCPOS.Commands.LineFeed);
+                commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.LineFeed, "Line feed"));
+
+            commandQueue.CompleteAdding();
         }
 
         public void VisitParagraphBegin() {
             if (!isFirstParagraph) {
-                result.AddRange(ESCPOS.Commands.LineFeed);
+                commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.LineFeed, "Line feed"));
             }
         }
 
@@ -64,22 +72,21 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
 
             currentJustification.Push(j);
 
-            result.AddRange(ESCPOS.Commands.SelectJustification(j));
+            commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.SelectJustification(j), $"Select justification: {j}"));
         }
 
         public void VisitAlignmentEnd() {
-            result.AddRange(ESCPOS.Commands.SelectJustification(
-                currentJustification.Pop()
-            ));
+            Justification prev = currentJustification.Pop();
+            commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.SelectJustification(prev), $"Select justification: {prev}"));
         }
 
         public void VisitText(string text) {
-            result.AddRange(tw(text));
-            result.AddRange(ESCPOS.Commands.LineFeed);
+            EnqueueWrappedText(text, "Text");
+            commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.LineFeed, "Line feed"));
         }
 
         public void VisitHeading(string text, int level) {
-            result.AddRange(level switch {
+            byte[] selectSize = level switch {
                 1 => ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Normal, ESCPOS.CharSizeHeight.Normal),
                 2 => ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Double, ESCPOS.CharSizeHeight.Double),
                 3 => ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Triple, ESCPOS.CharSizeHeight.Triple),
@@ -89,17 +96,20 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                 7 => ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Septuple, ESCPOS.CharSizeHeight.Septuple),
                 8 => ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Octuple, ESCPOS.CharSizeHeight.Octuple),
                 _ => Array.Empty<byte>(),
-            });
+            };
+
+            if (selectSize?.Length > 0)
+                commandQueue.Enqueue(new EscPosCommand(selectSize, $"Select char size level {level}"));
 
             int oldFontSize = currentFontSize;
             currentFontSize = level;
 
-            result.AddRange(tw(text));
-            result.AddRange(ESCPOS.Commands.LineFeed);
+            EnqueueWrappedText(text, $"Heading level {level}");
+            commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.LineFeed, "Line feed"));
 
             currentFontSize = oldFontSize;
 
-            result.AddRange(ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Normal, ESCPOS.CharSizeHeight.Normal));
+            commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.SelectCharSize(ESCPOS.CharSizeWidth.Normal, ESCPOS.CharSizeHeight.Normal), "Select char size normal"));
         }
 
         public void VisitQr(string text, string size, bool asImage, IReadOnlyDictionary<string, string> vendorAttributes) {
@@ -108,7 +118,8 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                     throw new InvalidOperationException($"{nameof(BarcodeImageProvider)} is not set, cannot render QR code as image.");
                 }
 
-                result.AddRange(BarcodeImageProvider.GetQrCodeImage(text, Convert.ToInt32(size), vendorAttributes));
+                byte[] img = BarcodeImageProvider.GetQrCodeImage(text, Convert.ToInt32(size), vendorAttributes);
+                commandQueue.Enqueue(new EscPosCommand(img, "QR code image"));
             }
             else {
                 QRCodeSize s = size switch {
@@ -119,7 +130,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                     _ => QRCodeSize.Normal
                 };
 
-                result.AddRange(ESCPOS.Commands.PrintQRCode(text, qrCodeSize: s));
+                commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.PrintQRCode(text, qrCodeSize: s), "Print QR code"));
             }
         }
 
@@ -148,8 +159,9 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                 sb.Append(' ', spaces);
                 sb.Append(right);
 
-                result.AddRange(t(sb.ToString()));
-                result.AddRange(ESCPOS.Commands.LineFeed);
+                byte[] encoded = t(sb.ToString());
+                commandQueue.Enqueue(new EscPosCommand(encoded, "Table row"));
+                commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.LineFeed, "Line feed"));
             }
         }
 
@@ -159,7 +171,8 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                     throw new InvalidOperationException($"{nameof(BarcodeImageProvider)} is not set, cannot render QR code as image.");
                 }
 
-                result.AddRange(BarcodeImageProvider.GetBarcodeImage(kind, value, 300, vendorAttributes));
+                byte[] img = BarcodeImageProvider.GetBarcodeImage(kind, value, 300, vendorAttributes);
+                commandQueue.Enqueue(new EscPosCommand(img, "Barcode image"));
             }
             else {
                 BarCodeType type = kind switch {
@@ -175,34 +188,32 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                     _ => throw new ArgumentException("Invalid barcode kind was provided", nameof(kind))
                 };
 
-                result.AddRange(ESCPOS.Commands.PrintBarCode(type, value, barcodeWidth: BarcodeWidth.Thick));
+                commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.PrintBarCode(type, value, barcodeWidth: BarcodeWidth.Thick), "Print barcode"));
             }
         }
 
         private byte[] t(string text) => encoder.Encode(text);
 
-        private byte[] tw(string text) {
+        private void EnqueueWrappedText(string text, string description) {
             var lines = WordWrap(text.Replace(Environment.NewLine, ""), font.GetCharsPerLine(currentFontSize)).ToList();
 
-            if (lines.Count == 1) {
-                return encoder.Encode(text);
-            }
+            if (lines.Count == 0)
+                return;
 
-            var bytes = new List<byte>();
+            if (lines.Count == 1) {
+                commandQueue.Enqueue(new EscPosCommand(encoder.Encode(text), description));
+                return;
+            }
 
             for (int i = 0; i < lines.Count; i++) {
-                bytes.AddRange(encoder.Encode(lines[i]));
-
-                // Append line feed between lines, but not after the last line
+                commandQueue.Enqueue(new EscPosCommand(encoder.Encode(lines[i]), description));
                 if (i < lines.Count - 1) {
-                    bytes.AddRange(ESCPOS.Commands.LineFeed);
+                    commandQueue.Enqueue(new EscPosCommand(ESCPOS.Commands.LineFeed, "Line feed"));
                 }
             }
-
-            return bytes.ToArray();
         }
 
-        public byte[] Result => result.ToArray();
+        public byte[] Result => Array.Empty<byte>();
 
         public static IEnumerable<string> WordWrap(string text, int maxWidth) {
             if (string.IsNullOrEmpty(text))
@@ -257,7 +268,8 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
                 throw new InvalidOperationException($"{nameof(ImageProvider)} is not set, cannot render image.");
             }
 
-            result.AddRange(ImageProvider.GetImage(imageBytes, mimeType, width, height, vendorAttributes));
+            byte[] img = ImageProvider.GetImage(imageBytes, mimeType, width, height, vendorAttributes);
+            commandQueue.Enqueue(new EscPosCommand(img, "Image"));
         }
     }
 }

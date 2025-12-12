@@ -10,7 +10,7 @@ namespace TomiSoft.Printing.Thermal.EscPosFormatter {
         private readonly string[] terminalNodes = { "t", "heading", "qr", "table", "barcode", "image" };
 
         public void Format(Stream xmlStream, IEscPosXmlVisitor visitor, Action<FormatterOptions> options) {
-            XmlDocument xmlDocument = new XmlDocument();
+            XmlDocument xmlDocument = new();
 
             try {
                 xmlDocument.Load(xmlStream);
